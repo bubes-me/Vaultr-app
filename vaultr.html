@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vaultr — Automated Escrow for African Social Commerce</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --gold: #C9A84C;
+      --gold-light: #E8C97A;
+      --gold-dim: rgba(201,168,76,0.15);
+      --bg: #080A0F;
+      --surface: #0E1117;
+      --surface2: #141820;
+      --border: rgba(255,255,255,0.06);
+      --text: #F0F2F5;
+      --muted: #6B7280;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* Ambient glow */
+    .ambient-glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+    }
+
+    .mono { font-family: 'DM Mono', monospace; }
+
+    /* Gold gradient text */
+    .text-gold-gradient {
+      background: linear-gradient(135deg, #C9A84C 0%, #E8C97A 40%, #C9A84C 70%, #A07830 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Animated border */
+    .border-glow {
+      border: 1px solid transparent;
+      background-clip: padding-box;
+      position: relative;
+    }
+    .border-glow::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(201,168,76,0.5), transparent 50%, rgba(201,168,76,0.2));
+      z-index: -1;
+    }
+
+    /* CTA Button */
+    .cta-btn {
+      position: relative;
+      background: linear-gradient(135deg, #C9A84C, #A07830);
+      color: #080A0F;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 40px rgba(201,168,76,0.3), 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .cta-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #E8C97A, #C9A84C);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .cta-btn:hover::before { opacity: 1; }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(201,168,76,0.5), 0 8px 30px rgba(0,0,0,0.5); }
+    .cta-btn span { position: relative; z-index: 1; }
+
+    /* Secondary btn */
+    .ghost-btn {
+      border: 1px solid rgba(201,168,76,0.3);
+      color: var(--gold-light);
+      transition: all 0.3s ease;
+      background: transparent;
+    }
+    .ghost-btn:hover {
+      border-color: rgba(201,168,76,0.7);
+      background: rgba(201,168,76,0.07);
+    }
+
+    /* Feature card */
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: all 0.35s ease;
+    }
+    .feature-card:hover {
+      border-color: rgba(201,168,76,0.25);
+      background: var(--surface2);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(201,168,76,0.05);
+    }
+
+    /* Nav */
+    nav {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(8,10,15,0.8);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Ticker */
+    .ticker-wrap {
+      overflow: hidden;
+      width: 100%;
+    }
+    .ticker {
+      display: flex;
+      gap: 3rem;
+      animation: ticker 20s linear infinite;
+      white-space: nowrap;
+    }
+    @keyframes ticker {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Step connector line */
+    .step-line {
+      position: absolute;
+      top: 22px;
+      left: calc(50% + 22px);
+      width: calc(100% - 44px);
+      height: 1px;
+      background: linear-gradient(90deg, rgba(201,168,76,0.4), rgba(201,168,76,0.1));
+    }
+
+    /* Scroll fade-in */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Stat counter */
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(201,168,76,0.06), transparent 60%);
+    }
+
+    /* Glowing badge */
+    .badge {
+      background: rgba(201,168,76,0.1);
+      border: 1px solid rgba(201,168,76,0.25);
+      color: var(--gold-light);
+    }
+
+    /* Map pattern background */
+    .map-bg {
+      background-image: radial-gradient(circle, rgba(201,168,76,0.12) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* Testimonial card */
+    .testimonial-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .testimonial-card::before {
+      content: '"';
+      position: absolute;
+      top: -10px;
+      left: 20px;
+      font-size: 80px;
+      color: var(--gold);
+      opacity: 0.15;
+      font-family: Georgia, serif;
+      line-height: 1;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
+
+    /* Pulse dot */
+    .pulse-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+    }
+
+    /* Hero number counter animation */
+    @keyframes countUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .count-animate {
+      animation: countUp 0.8s ease forwards;
+    }
+
+    /* Section divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+
+    /* Input focus */
+    input:focus {
+      outline: none;
+      border-color: rgba(201,168,76,0.5) !important;
+      box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg,#C9A84C,#A07830);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#080A0F" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M12 2v20M3 7l9 5 9-5" stroke="#080A0F" stroke-width="2" opacity="0.6"/>
+          </svg>
+        </div>
+        <span class="text-lg font-bold tracking-tight text-gold-gradient">Vaultr</span>
+      </div>
+
+      <div class="hidden md:flex items-center gap-8 text-sm" style="color: var(--muted);">
+        <a href="#how" class="hover:text-white transition-colors">How it works</a>
+        <a href="#features" class="hover:text-white transition-colors">Features</a>
+        <a href="#trust" class="hover:text-white transition-colors">Trust & Safety</a>
+        <a href="#markets" class="hover:text-white transition-colors">Markets</a>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="#" class="ghost-btn text-sm px-4 py-2 rounded-lg font-medium hidden md:block">Sign in</a>
+        <a href="#waitlist" class="cta-btn text-sm px-5 py-2 rounded-lg">
+          <span>Join Waitlist</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-16 overflow-hidden">
+    <!-- Ambient glows -->
+    <div class="ambient-glow w-96 h-96 top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2" style="background: radial-gradient(circle, rgba(201,168,76,0.18) 0%, transparent 70%);"></div>
+    <div class="ambient-glow w-64 h-64 top-1/3 left-1/4" style="background: radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%);"></div>
+    <div class="ambient-glow w-48 h-48 bottom-1/3 right-1/4" style="background: radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%);"></div>
+
+    <!-- Grid overlay -->
+    <div class="absolute inset-0 pointer-events-none" style="background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px); background-size: 60px 60px;"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto">
+      <!-- Live badge -->
+      <div class="inline-flex items-center gap-2 badge px-4 py-2 rounded-full text-sm font-medium mb-8 fade-up visible">
+        <span class="pulse-dot"></span>
+        Now accepting vendors across West Africa
+      </div>
+
+      <!-- Headline -->
+      <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6 fade-up visible" style="line-height: 1.05; transition-delay: 0.1s;">
+        Automated Escrow<br />
+        for <span class="text-gold-gradient">African Social</span><br />
+        Commerce
+      </h1>
+
+      <!-- Subheadline -->
+      <p class="text-xl md:text-2xl mb-4 font-light fade-up visible" style="color: var(--muted); max-width: 600px; margin-left: auto; margin-right: auto; transition-delay: 0.2s;">
+        Zero-Risk Buying. Guaranteed Vendor Liquidity.
+      </p>
+      <p class="text-base md:text-lg mb-10 fade-up visible" style="color: #4B5563; max-width: 520px; margin: 0 auto 40px; transition-delay: 0.25s;">
+        Vaultr sits between buyer and seller — funds are held securely, released only when both parties are satisfied. No chargebacks. No fraud. No trust issues.
+      </p>
+
+      <!-- CTA Group -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center fade-up visible" style="transition-delay: 0.3s;">
+        <a href="#waitlist" class="cta-btn text-base px-8 py-4 rounded-xl font-bold tracking-wide">
+          <span>Join the Vendor Waitlist →</span>
+        </a>
+        <a href="#how" class="ghost-btn text-base px-8 py-4 rounded-xl font-medium flex items-center gap-2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16 10,8"/>
+          </svg>
+          See how it works
+        </a>
+      </div>
+
+      <!-- Social proof numbers -->
+      <div class="mt-16 grid grid-cols-3 gap-6 max-w-xl mx-auto fade-up visible" style="transition-delay: 0.4s;">
+        <div>
+          <div class="text-2xl md:text-3xl font-bold text-gold-gradient">$2.4M+</div>
+          <div class="text-xs mt-1" style="color: var(--muted);">Protected in Beta</div>
+        </div>
+        <div style="border-left: 1px solid var(--border); border-right: 1px solid var(--border);">
+          <div class="text-2xl md:text-3xl font-bold text-gold-gradient">1,200+</div>
+          <div class="text-xs mt-1" style="color: var(--muted);">Vendors Waitlisted</div>
+        </div>
+        <div>
+          <div class="text-2xl md:text-3xl font-bold text-gold-gradient">0.3%</div>
+          <div class="text-xs mt-1" style="color: var(--muted);">Dispute Rate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll hint -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30">
+      <div class="w-px h-12" style="background: linear-gradient(to bottom, transparent, var(--gold));"></div>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2">
+        <path d="M7 10l5 5 5-5"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="divider"></div>
+  <div class="py-4" style="background: var(--surface);">
+    <div class="ticker-wrap">
+      <div class="ticker mono text-xs" style="color: var(--muted);">
+        <!-- Repeated twice for seamless loop -->
+        <span>🇳🇬 Lagos</span><span style="color:var(--gold)">●</span>
+        <span>🇬🇭 Accra</span><span style="color:var(--gold)">●</span>
+        <span>🇰🇪 Nairobi</span><span style="color:var(--gold)">●</span>
+        <span>🇿🇦 Johannesburg</span><span style="color:var(--gold)">●</span>
+        <span>🇸🇳 Dakar</span><span style="color:var(--gold)">●</span>
+        <span>🇪🇹 Addis Ababa</span><span style="color:var(--gold)">●</span>
+        <span>🇨🇮 Abidjan</span><span style="color:var(--gold)">●</span>
+        <span>🇹🇿 Dar es Salaam</span><span style="color:var(--gold)">●</span>
+        <span>🇷🇼 Kigali</span><span style="color:var(--gold)">●</span>
+        <span>🇨🇲 Douala</span><span style="color:var(--gold)">●</span>
+        <!-- Duplicate for seamless -->
+        <span>🇳🇬 Lagos</span><span style="color:var(--gold)">●</span>
+        <span>🇬🇭 Accra</span><span style="color:var(--gold)">●</span>
+        <span>🇰🇪 Nairobi</span><span style="color:var(--gold)">●</span>
+        <span>🇿🇦 Johannesburg</span><span style="color:var(--gold)">●</span>
+        <span>🇸🇳 Dakar</span><span style="color:var(--gold)">●</span>
+        <span>🇪🇹 Addis Ababa</span><span style="color:var(--gold)">●</span>
+        <span>🇨🇮 Abidjan</span><span style="color:var(--gold)">●</span>
+        <span>🇹🇿 Dar es Salaam</span><span style="color:var(--gold)">●</span>
+        <span>🇷🇼 Kigali</span><span style="color:var(--gold)">●</span>
+        <span>🇨🇲 Douala</span><span style="color:var(--gold)">●</span>
+      </div>
+    </div>
+  </div>
+  <div class="divider"></div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="relative py-28 px-6 overflow-hidden">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-20 fade-up">
+        <div class="inline-flex items-center gap-2 badge px-3 py-1 rounded-full text-xs font-medium mono mb-4">PROTOCOL</div>
+        <h2 class="text-4xl md:text-5xl font-bold">How Vaultr Works</h2>
+        <p class="mt-4 text-lg" style="color: var(--muted);">Three steps. Total protection. Every transaction.</p>
+      </div>
+
+      <!-- Steps -->
+      <div class="grid md:grid-cols-3 gap-8 relative">
+        <div class="fade-up">
+          <div class="feature-card rounded-2xl p-8 h-full">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-6 text-sm font-bold" style="background: var(--gold-dim); border: 1px solid rgba(201,168,76,0.25); color: var(--gold-light);">01</div>
+            <h3 class="text-xl font-semibold mb-3">Buyer Locks Funds</h3>
+            <p style="color: var(--muted); line-height: 1.7;">Customer pays into Vaultr's secure escrow vault. Funds are immediately visible to the vendor — but held safely until delivery is confirmed.</p>
+            <div class="mt-6 p-4 rounded-xl mono text-xs" style="background: var(--bg); border: 1px solid var(--border); color: var(--muted);">
+              <div style="color: var(--gold)">→ vault.lock({</div>
+              <div class="ml-4">amount: <span style="color:#22c55e">"₦45,000"</span>,</div>
+              <div class="ml-4">currency: <span style="color:#22c55e">"NGN"</span>,</div>
+              <div class="ml-4">status: <span style="color:#22c55e">"secured"</span></div>
+              <div style="color: var(--gold)">})</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fade-up" style="transition-delay: 0.15s;">
+          <div class="feature-card rounded-2xl p-8 h-full">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-6 text-sm font-bold" style="background: var(--gold-dim); border: 1px solid rgba(201,168,76,0.25); color: var(--gold-light);">02</div>
+            <h3 class="text-xl font-semibold mb-3">Vendor Ships with Confidence</h3>
+            <p style="color: var(--muted); line-height: 1.7;">Vendor sees confirmed escrow and ships immediately — no "pay me first" friction, no ghosting. Vaultr generates a trackable fulfillment code.</p>
+            <div class="mt-6 flex items-center gap-3 p-4 rounded-xl" style="background: var(--bg); border: 1px solid var(--border);">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(34,197,94,0.1);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+              </div>
+              <div>
+                <div class="text-xs font-semibold" style="color: #22c55e;">Shipment Confirmed</div>
+                <div class="text-xs mono" style="color: var(--muted);">VLT-7X4K-2931</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fade-up" style="transition-delay: 0.3s;">
+          <div class="feature-card rounded-2xl p-8 h-full">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-6 text-sm font-bold" style="background: var(--gold-dim); border: 1px solid rgba(201,168,76,0.25); color: var(--gold-light);">03</div>
+            <h3 class="text-xl font-semibold mb-3">Funds Release Instantly</h3>
+            <p style="color: var(--muted); line-height: 1.7;">Buyer confirms receipt. Funds release to vendor in seconds — not days. No bank delays, no withheld settlements, no platform risk.</p>
+            <div class="mt-6 p-4 rounded-xl" style="background: var(--bg); border: 1px solid var(--border);">
+              <div class="flex justify-between text-xs mb-2">
+                <span style="color: var(--muted)">Settlement</span>
+                <span style="color: #22c55e" class="font-semibold">✓ Instant</span>
+              </div>
+              <div class="w-full rounded-full h-2" style="background: rgba(255,255,255,0.05);">
+                <div class="h-2 rounded-full" style="width: 100%; background: linear-gradient(90deg, #C9A84C, #22c55e);"></div>
+              </div>
+              <div class="flex justify-between text-xs mt-2">
+                <span style="color: var(--muted)">₦45,000 transferred</span>
+                <span class="mono" style="color: var(--gold)">0.8s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="py-28 px-6" style="background: var(--surface);">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-20 fade-up">
+        <div class="inline-flex items-center gap-2 badge px-3 py-1 rounded-full text-xs font-medium mono mb-4">CAPABILITIES</div>
+        <h2 class="text-4xl md:text-5xl font-bold">Built for the African Market</h2>
+        <p class="mt-4 text-lg" style="color: var(--muted);">Infrastructure that understands your reality — not a Western product retrofitted for Africa.</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Card 1 -->
+        <div class="feature-card rounded-2xl p-7 fade-up">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background: var(--gold-dim);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Escrow-as-a-Service API</h3>
+          <p class="text-sm leading-relaxed" style="color: var(--muted);">Embed Vaultr into any Instagram shop, WhatsApp store, or marketplace in minutes with a single API call.</p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="feature-card rounded-2xl p-7 fade-up" style="transition-delay:0.1s;">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background: var(--gold-dim);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Multi-Currency Support</h3>
+          <p class="text-sm leading-relaxed" style="color: var(--muted);">NGN, GHS, KES, ZAR, XOF and USD — with real-time FX rates and no hidden conversion spreads.</p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="feature-card rounded-2xl p-7 fade-up" style="transition-delay:0.2s;">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background: var(--gold-dim);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><path d="M9 12l2 2 4-4"/><path d="M21 12c0-4.97-4.03-9-9-9S3 7.03 3 12s4.03 9 9 9 9-4.03 9-9z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">AI Dispute Resolution</h3>
+          <p class="text-sm leading-relaxed" style="color: var(--muted);">98.7% of disputes resolved automatically using our ML model trained on African e-commerce patterns.</p>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="feature-card rounded-2xl p-7 fade-up" style="transition-delay:0.05s;">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background: var(--gold-dim);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Vendor Dashboard</h3>
+          <p class="text-sm leading-relaxed" style="color: var(--muted);">Real-time cash flow, escrow status, payout history, and fraud alerts in one clean interface.</p>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="feature-card rounded-2xl p-7 fade-up" style="transition-delay:0.15s;">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background: var(--gold-dim);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">WhatsApp & Instagram Native</h3>
+          <p class="text-sm leading-relaxed" style="color: var(--muted);">Generate and share Vaultr payment links directly from your DMs. No app downloads required for buyers.</p>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="feature-card rounded-2xl p-7 fade-up" style="transition-delay:0.25s;">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background: var(--gold-dim);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Bank-Grade Compliance</h3>
+          <p class="text-sm leading-relaxed" style="color: var(--muted);">PCI-DSS Level 1, CBN-compliant, and GDPR-aligned. Audited quarterly by independent security firms.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST SECTION -->
+  <section id="trust" class="py-28 px-6 relative overflow-hidden">
+    <div class="absolute inset-0 map-bg opacity-30 pointer-events-none"></div>
+    <div class="ambient-glow w-96 h-96 top-1/2 right-0 -translate-y-1/2" style="background: radial-gradient(circle, rgba(201,168,76,0.1) 0%, transparent 70%);"></div>
+
+    <div class="max-w-7xl mx-auto relative z-10">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+        <div class="fade-up">
+          <div class="inline-flex items-center gap-2 badge px-3 py-1 rounded-full text-xs font-medium mono mb-6">TRUST & SAFETY</div>
+          <h2 class="text-4xl md:text-5xl font-bold mb-6" style="line-height: 1.1;">Your money moves.<br /><span class="text-gold-gradient">Your risk doesn't.</span></h2>
+          <p class="text-lg mb-8 leading-relaxed" style="color: var(--muted);">African social commerce loses an estimated $2.1B annually to fraud and payment disputes. Vaultr closes that gap — permanently.</p>
+
+          <div class="space-y-5">
+            <div class="flex gap-4 items-start">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style="background: rgba(34,197,94,0.1);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+              <div>
+                <div class="font-semibold mb-1">Funds held in regulated custodial accounts</div>
+                <div class="text-sm" style="color: var(--muted);">Not on our balance sheet. Segregated, insured, and always yours until released.</div>
+              </div>
+            </div>
+            <div class="flex gap-4 items-start">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style="background: rgba(34,197,94,0.1);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+              <div>
+                <div class="font-semibold mb-1">No-chargeback guarantee for vendors</div>
+                <div class="text-sm" style="color: var(--muted);">Once an escrow releases, it's final. Vendors never lose paid settlements.</div>
+              </div>
+            </div>
+            <div class="flex gap-4 items-start">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style="background: rgba(34,197,94,0.1);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+              <div>
+                <div class="font-semibold mb-1">Buyer protection with smart expiry</div>
+                <div class="text-sm" style="color: var(--muted);">Funds auto-refund if delivery isn't confirmed within agreed windows. No manual chasing.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats grid -->
+        <div class="grid grid-cols-2 gap-4 fade-up" style="transition-delay: 0.2s;">
+          <div class="stat-card rounded-2xl p-6">
+            <div class="text-3xl font-bold text-gold-gradient mb-1">99.97%</div>
+            <div class="text-sm" style="color: var(--muted);">Uptime SLA</div>
+          </div>
+          <div class="stat-card rounded-2xl p-6">
+            <div class="text-3xl font-bold text-gold-gradient mb-1">&lt; 1.2s</div>
+            <div class="text-sm" style="color: var(--muted);">Avg. Settlement</div>
+          </div>
+          <div class="stat-card rounded-2xl p-6">
+            <div class="text-3xl font-bold text-gold-gradient mb-1">256-bit</div>
+            <div class="text-sm" style="color: var(--muted);">AES Encryption</div>
+          </div>
+          <div class="stat-card rounded-2xl p-6">
+            <div class="text-3xl font-bold text-gold-gradient mb-1">10+</div>
+            <div class="text-sm" style="color: var(--muted);">Markets at Launch</div>
+          </div>
+          <div class="stat-card rounded-2xl p-6 col-span-2">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(201,168,76,0.1);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div class="font-semibold">Security-first architecture</div>
+            </div>
+            <p class="text-sm" style="color: var(--muted);">Zero-trust infrastructure. All API keys scoped, all endpoints rate-limited, all events audited.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="py-28 px-6" style="background: var(--surface);">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16 fade-up">
+        <div class="inline-flex items-center gap-2 badge px-3 py-1 rounded-full text-xs font-medium mono mb-4">SOCIAL PROOF</div>
+        <h2 class="text-4xl md:text-5xl font-bold">Vendors love Vaultr</h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="testimonial-card rounded-2xl p-8 fade-up">
+          <p class="text-sm leading-relaxed mb-6" style="color: #9CA3AF;">"I used to lose 30% of sales to fake payment alerts and buyers disappearing after delivery. Vaultr completely eliminated that. My refund rate is now zero."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm" style="background: linear-gradient(135deg,#C9A84C,#A07830); color: #080A0F;">AO</div>
+            <div>
+              <div class="text-sm font-semibold">Amaka Okonkwo</div>
+              <div class="text-xs" style="color: var(--muted);">Fashion Vendor, Lagos</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card rounded-2xl p-8 fade-up" style="transition-delay:0.15s;">
+          <p class="text-sm leading-relaxed mb-6" style="color: #9CA3AF;">"My WhatsApp store now does ₦800K/month. Vaultr gave my customers the confidence to order — and me the confidence to ship first without fear."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm" style="background: linear-gradient(135deg,#C9A84C,#A07830); color: #080A0F;">KM</div>
+            <div>
+              <div class="text-sm font-semibold">Kofi Mensah</div>
+              <div class="text-xs" style="color: var(--muted);">Electronics Dealer, Accra</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card rounded-2xl p-8 fade-up" style="transition-delay:0.3s;">
+          <p class="text-sm leading-relaxed mb-6" style="color: #9CA3AF;">"The API integration took 40 minutes. Now every order on my Instagram page goes through Vaultr automatically. It's the best infrastructure decision I've made."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm" style="background: linear-gradient(135deg,#C9A84C,#A07830); color: #080A0F;">FN</div>
+            <div>
+              <div class="text-sm font-semibold">Fatima Ndiaye</div>
+              <div class="text-xs" style="color: var(--muted);">Beauty Brand, Dakar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING TEASER -->
+  <section id="markets" class="py-28 px-6 relative overflow-hidden">
+    <div class="ambient-glow w-80 h-80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="background: radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 70%);"></div>
+    <div class="max-w-3xl mx-auto text-center relative z-10">
+      <div class="fade-up">
+        <div class="inline-flex items-center gap-2 badge px-3 py-1 rounded-full text-xs font-medium mono mb-6">PRICING</div>
+        <h2 class="text-4xl md:text-5xl font-bold mb-4">Simple, fair pricing</h2>
+        <p class="text-xl mb-12" style="color: var(--muted);">Pay only when you earn. No monthly fees. No setup costs.</p>
+      </div>
+
+      <div class="border-glow rounded-3xl p-10 fade-up" style="background: var(--surface); transition-delay:0.2s;">
+        <div class="text-6xl font-bold mb-2 text-gold-gradient">1.5%</div>
+        <div class="text-lg mb-2 font-medium">per successful transaction</div>
+        <div class="text-sm mb-8" style="color: var(--muted);">Capped at ₦5,000 per escrow. Buyers pay nothing.</div>
+
+        <div class="divider mb-8"></div>
+
+        <div class="grid grid-cols-3 gap-6 text-sm mb-8">
+          <div>
+            <div class="font-semibold mb-1">Free</div>
+            <div style="color: var(--muted);">Account setup</div>
+          </div>
+          <div style="border-left: 1px solid var(--border); border-right: 1px solid var(--border);">
+            <div class="font-semibold mb-1">Free</div>
+            <div style="color: var(--muted);">Dispute resolution</div>
+          </div>
+          <div>
+            <div class="font-semibold mb-1">Free</div>
+            <div style="color: var(--muted);">API access</div>
+          </div>
+        </div>
+
+        <a href="#waitlist" class="cta-btn inline-block text-base px-10 py-4 rounded-xl font-bold">
+          <span>Get Early Access — Free</span>
+        </a>
+        <div class="mt-4 text-xs" style="color: var(--muted);">First 3 months at 0% for waitlist vendors</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WAITLIST FORM -->
+  <section id="waitlist" class="py-28 px-6" style="background: var(--surface);">
+    <div class="max-w-xl mx-auto text-center">
+      <div class="fade-up">
+        <div class="inline-flex items-center gap-2 badge px-3 py-1 rounded-full text-xs font-medium mono mb-6">EARLY ACCESS</div>
+        <h2 class="text-4xl md:text-5xl font-bold mb-4">Join the Vendor<br />Waitlist</h2>
+        <p class="text-lg mb-10" style="color: var(--muted);">Be first in line. First 500 vendors get 3 months free and dedicated onboarding support.</p>
+      </div>
+
+      <div class="fade-up border-glow rounded-3xl p-8" style="background: var(--bg); transition-delay:0.2s;">
+        <div id="form-container" class="space-y-4">
+          <div>
+            <input type="text" id="name" placeholder="Your full name" class="w-full px-5 py-4 rounded-xl text-sm font-medium" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);" />
+          </div>
+          <div>
+            <input type="email" id="email" placeholder="Work email address" class="w-full px-5 py-4 rounded-xl text-sm font-medium" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);" />
+          </div>
+          <div>
+            <select id="country" class="w-full px-5 py-4 rounded-xl text-sm font-medium appearance-none" style="background: var(--surface); border: 1px solid var(--border); color: var(--muted);">
+              <option value="">Select your country</option>
+              <option>Nigeria</option>
+              <option>Ghana</option>
+              <option>Kenya</option>
+              <option>South Africa</option>
+              <option>Senegal</option>
+              <option>Ethiopia</option>
+              <option>Côte d'Ivoire</option>
+              <option>Tanzania</option>
+              <option>Rwanda</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <select id="platform" class="w-full px-5 py-4 rounded-xl text-sm font-medium appearance-none" style="background: var(--surface); border: 1px solid var(--border); color: var(--muted);">
+              <option value="">Where do you sell?</option>
+              <option>Instagram / Facebook</option>
+              <option>WhatsApp</option>
+              <option>TikTok Shop</option>
+              <option>My own website</option>
+              <option>Multiple platforms</option>
+            </select>
+          </div>
+          <button onclick="handleSubmit()" class="cta-btn w-full py-4 rounded-xl text-base font-bold">
+            <span>Join the Vendor Waitlist →</span>
+          </button>
+          <p class="text-xs" style="color: var(--muted);">No spam. No credit card required. We'll reach out within 48 hours.</p>
+        </div>
+
+        <!-- Success state (hidden) -->
+        <div id="success-state" class="hidden py-8">
+          <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div class="text-xl font-bold mb-2">You're on the list!</div>
+          <div class="text-sm" style="color: var(--muted);">We'll be in touch within 48 hours. In the meantime, share Vaultr with your fellow vendors.</div>
+          <div class="mt-6 flex gap-3 justify-center">
+            <button onclick="shareVaultr()" class="ghost-btn text-sm px-5 py-2.5 rounded-xl font-medium">Share Vaultr ↗</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="py-16 px-6" style="border-top: 1px solid var(--border);">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid md:grid-cols-4 gap-10 mb-12">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg,#C9A84C,#A07830);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#080A0F" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M12 2v20M3 7l9 5 9-5" stroke="#080A0F" stroke-width="2" opacity="0.6"/>
+              </svg>
+            </div>
+            <span class="text-lg font-bold tracking-tight text-gold-gradient">Vaultr</span>
+          </div>
+          <p class="text-sm leading-relaxed max-w-xs" style="color: var(--muted);">Automated escrow infrastructure for African social commerce. Protect every transaction, scale every business.</p>
+        </div>
+
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-wider mb-4" style="color: var(--muted);">Product</div>
+          <div class="space-y-3 text-sm" style="color: #6B7280;">
+            <div><a href="#" class="hover:text-white transition-colors">How it works</a></div>
+            <div><a href="#" class="hover:text-white transition-colors">Pricing</a></div>
+            <div><a href="#" class="hover:text-white transition-colors">API Docs</a></div>
+            <div><a href="#" class="hover:text-white transition-colors">Security</a></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-wider mb-4" style="color: var(--muted);">Company</div>
+          <div class="space-y-3 text-sm" style="color: #6B7280;">
+            <div><a href="#" class="hover:text-white transition-colors">About</a></div>
+            <div><a href="#" class="hover:text-white transition-colors">Blog</a></div>
+            <div><a href="#" class="hover:text-white transition-colors">Careers</a></div>
+            <div><a href="#" class="hover:text-white transition-colors">Contact</a></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider mb-8"></div>
+
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="text-xs" style="color: var(--muted);">© 2025 Vaultr Technologies Ltd. All rights reserved.</div>
+        <div class="flex items-center gap-6 text-xs" style="color: var(--muted);">
+          <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
+          <a href="#" class="hover:text-white transition-colors">Terms of Service</a>
+          <a href="#" class="hover:text-white transition-colors">Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Scroll fade-in
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(el => {
+        if (el.isIntersecting) {
+          el.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    // Form handler
+    function handleSubmit() {
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const country = document.getElementById('country').value;
+      const platform = document.getElementById('platform').value;
+
+      if (!name || !email || !country || !platform) {
+        // Shake effect on empty fields
+        [name ? null : 'name', email ? null : 'email', country ? null : 'country', platform ? null : 'platform']
+          .filter(Boolean)
+          .forEach(id => {
+            const el = document.getElementById(id);
+            el.style.borderColor = 'rgba(239,68,68,0.6)';
+            el.style.animation = 'shake 0.4s ease';
+            setTimeout(() => {
+              el.style.borderColor = '';
+              el.style.animation = '';
+            }, 1000);
+          });
+        return;
+      }
+
+      document.getElementById('form-container').classList.add('hidden');
+      document.getElementById('success-state').classList.remove('hidden');
+    }
+
+    function shareVaultr() {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Vaultr — Automated Escrow for African Social Commerce',
+          text: 'Zero-Risk Buying. Guaranteed Vendor Liquidity. Check out Vaultr!',
+          url: window.location.href
+        });
+      } else {
+        navigator.clipboard.writeText(window.location.href);
+        alert('Link copied to clipboard!');
+      }
+    }
+
+    // Add shake keyframe
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes shake {
+        0%,100% { transform: translateX(0); }
+        25% { transform: translateX(-6px); }
+        75% { transform: translateX(6px); }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>
