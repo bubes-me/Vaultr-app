@@ -650,44 +650,37 @@
       </div>
 
       <div class="fade-up border-glow rounded-3xl p-8" style="background: var(--bg); transition-delay:0.2s;">
-        <div id="form-container" class="space-y-4">
+   <form action="https://formspree.io/f/xeevowjk" method="POST" id="form-container" class="space-y-4">
           <div>
-            <input type="text" id="name" placeholder="Your full name" class="w-full px-5 py-4 rounded-xl text-sm font-medium" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);" />
+            <input type="text" name="name" id="name" placeholder="Your full name" required class="w-full px-5 py-4 rounded-xl text-sm font-medium" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);" />
           </div>
           <div>
-            <input type="email" id="email" placeholder="Work email address" class="w-full px-5 py-4 rounded-xl text-sm font-medium" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);" />
+            <input type="email" name="email" id="email" placeholder="Work email address" required class="w-full px-5 py-4 rounded-xl text-sm font-medium" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);" />
           </div>
           <div>
-            <select id="country" class="w-full px-5 py-4 rounded-xl text-sm font-medium appearance-none" style="background: var(--surface); border: 1px solid var(--border); color: var(--muted);">
+            <select name="country" id="country" required class="w-full px-5 py-4 rounded-xl text-sm font-medium appearance-none" style="background: var(--surface); border: 1px solid var(--border); color: var(--muted);">
               <option value="">Select your country</option>
-              <option>Nigeria</option>
-              <option>Ghana</option>
-              <option>Kenya</option>
-              <option>South Africa</option>
-              <option>Senegal</option>
-              <option>Ethiopia</option>
-              <option>Côte d'Ivoire</option>
-              <option>Tanzania</option>
-              <option>Rwanda</option>
-              <option>Other</option>
+              <option value="Nigeria">Nigeria</option>
+              <option value="Ghana">Ghana</option>
+              <option value="Kenya">Kenya</option>
+              <option value="South Africa">South Africa</option>
+              <option value="Other">Other</option>
             </select>
           </div>
           <div>
-            <select id="platform" class="w-full px-5 py-4 rounded-xl text-sm font-medium appearance-none" style="background: var(--surface); border: 1px solid var(--border); color: var(--muted);">
+            <select name="platform" id="platform" required class="w-full px-5 py-4 rounded-xl text-sm font-medium appearance-none" style="background: var(--surface); border: 1px solid var(--border); color: var(--muted);">
               <option value="">Where do you sell?</option>
-              <option>Instagram / Facebook</option>
-              <option>WhatsApp</option>
-              <option>TikTok Shop</option>
-              <option>My own website</option>
-              <option>Multiple platforms</option>
+              <option value="Instagram/Facebook">Instagram / Facebook</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="TikTok">TikTok Shop</option>
+              <option value="Website">My own website</option>
             </select>
           </div>
-          <button onclick="handleSubmit()" class="cta-btn w-full py-4 rounded-xl text-base font-bold">
+          <button type="submit" class="cta-btn w-full py-4 rounded-xl text-base font-bold">
             <span>Join the Vendor Waitlist →</span>
           </button>
           <p class="text-xs" style="color: var(--muted);">No spam. No credit card required. We'll reach out within 48 hours.</p>
-        </div>
-
+        </form>
         <!-- Success state (hidden) -->
         <div id="success-state" class="hidden py-8">
           <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2);">
