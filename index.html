@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vaultr | Automated Escrow for African Social Commerce</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -736,6 +737,9 @@
   </footer>
 
   <script>
+    // Init EmailJS
+    emailjs.init('6yof7Mo1bWCFKZBsV');
+
     // Scroll fade-in
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(el => {
@@ -791,6 +795,9 @@
         });
 
         if (res.ok) {
+          // Fire auto-reply email via EmailJS
+          emailjs.send('service_f08wujm', 'template_o7984q9', { name, email, country, platform });
+
           document.getElementById('form-container').classList.add('hidden');
           document.getElementById('success-state').classList.remove('hidden');
         } else {
@@ -820,3 +827,4 @@
   </script>
 </body>
 </html>
+
